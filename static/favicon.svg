@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <rect width="32" height="32" rx="6" fill="#06070a"/>
+  <!-- corner scanner brackets -->
+  <path d="M5 11V7a2 2 0 0 1 2-2h4" fill="none" stroke="#2dffd6" stroke-width="2" stroke-linecap="round"/>
+  <path d="M27 11V7a2 2 0 0 0-2-2h-4" fill="none" stroke="#2dffd6" stroke-width="2" stroke-linecap="round"/>
+  <path d="M5 21v4a2 2 0 0 0 2 2h4" fill="none" stroke="#2dffd6" stroke-width="2" stroke-linecap="round"/>
+  <path d="M27 21v4a2 2 0 0 1-2 2h-4" fill="none" stroke="#2dffd6" stroke-width="2" stroke-linecap="round"/>
+  <!-- inner dot grid (qr-ish) -->
+  <rect x="11" y="11" width="4" height="4" fill="#e9edf3"/>
+  <rect x="17" y="11" width="4" height="4" fill="#8c6bff"/>
+  <rect x="11" y="17" width="4" height="4" fill="#8c6bff"/>
+  <rect x="17" y="17" width="4" height="4" fill="#e9edf3"/>
+</svg>

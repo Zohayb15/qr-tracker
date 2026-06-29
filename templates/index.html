@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block title %}Create a tracked QR code{% endblock %}
+{% block content %}
+  <h1>Create a tracked QR code</h1>
+  <p class="subtitle">Every scan is logged automatically — location, device, browser, and repeat visits — with no input required from the person scanning.</p>
+
+  <div class="card">
+    <form method="post">
+      <div class="row">
+        <div>
+          <label for="name">Campaign name</label>
+          <input type="text" id="name" name="name" placeholder="e.g. Spring pop-up event flyer" required>
+        </div>
+      </div>
+      <div class="row" style="margin-top: 14px;">
+        <div>
+          <label for="destination_url">Destination URL (where the scan should land)</label>
+          <input type="text" id="destination_url" name="destination_url" placeholder="https://yoursite.com/event" required>
+        </div>
+      </div>
+      <div style="margin-top: 18px;">
+        <button class="primary" type="submit">Generate QR code</button>
+      </div>
+    </form>
+  </div>
+
+  <h2>Your campaigns</h2>
+  {% if campaigns %}
+    <div class="card" style="padding: 0;">
+      <div style="overflow-x: auto;">
+      <table>
+        <thead>
+          <tr><th>Name</th><th>QR code</th><th>Download</th><th>Destination</th><th>Created</th><th></th></tr>
+        </thead>
+        <tbody>
+          {% for c in campaigns %}
+          <tr>
+            <td>{{ c.name }}</td>
+            <td><img src="{{ url_for('qr_image_png', code=c.code) }}" width="56" height="56" alt="QR code for {{ c.name }}" style="border-radius: 6px; display: block;"></td>
+            <td>
+              <a class="link mono" href="{{ url_for('qr_image_png', code=c.code, download=1) }}">PNG</a>
+              &middot;
+              <a class="link mono" href="{{ url_for('qr_image_svg', code=c.code, download=1) }}">SVG</a>
+            </td>
+            <td><span class="mono">{{ c.destination_url }}</span></td>
+            <td>{{ c.created_at.strftime('%b %d, %Y') }}</td>
+            <td><a class="link" href="{{ url_for('dashboard_detail', code=c.code) }}">View stats</a></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      </div>
+    </div>
+  {% else %}
+    <p class="empty">No campaigns yet. Create one above to get a scannable QR code.</p>
+  {% endif %}
+
+  <footer class="note">Your campaigns are private to your account. Go to <a class="link" href="{{ url_for('dashboard') }}">/dashboard</a> for the full scan analytics view.</footer>
+{% endblock %}

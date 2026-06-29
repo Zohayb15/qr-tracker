@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+{% block content %}
+  <h1>Dashboard</h1>
+  <p class="subtitle">All campaigns and their scan totals.</p>
+
+  {% if summary %}
+    <div class="card" style="padding: 0;">
+      <div style="overflow-x: auto;">
+      <table>
+        <thead>
+          <tr><th>Campaign</th><th>Total scans</th><th>Unique visitors</th><th>Created</th><th></th></tr>
+        </thead>
+        <tbody>
+          {% for row in summary %}
+          <tr>
+            <td>{{ row.campaign.name }}</td>
+            <td>{{ row.total }}</td>
+            <td>{{ row.unique }}</td>
+            <td>{{ row.campaign.created_at.strftime('%b %d, %Y') }}</td>
+            <td><a class="link" href="{{ url_for('dashboard_detail', code=row.campaign.code) }}">View details</a></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      </div>
+    </div>
+  {% else %}
+    <p class="empty">No campaigns yet. <a class="link" href="{{ url_for('index') }}">Create one</a> to start tracking scans.</p>
+  {% endif %}
+{% endblock %}

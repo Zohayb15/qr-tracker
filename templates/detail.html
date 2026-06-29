@@ -1,0 +1,148 @@
+{% extends "base.html" %}
+{% block title %}{{ campaign.name }} — stats{% endblock %}
+{% block content %}
+  <h1>{{ campaign.name }}</h1>
+  <p class="subtitle">
+    Tracking link: <span class="mono">{{ url_for('scan', code=campaign.code, _external=True) }}</span>
+    &middot; Destination: <span class="mono">{{ campaign.destination_url }}</span>
+  </p>
+
+  <div class="row" style="margin-bottom: 20px;">
+    <div style="flex: none;">
+      <div class="scan-frame">
+        <span class="corner tl"></span><span class="corner tr"></span>
+        <span class="corner bl"></span><span class="corner br"></span>
+        <span class="scanline"></span>
+        <img src="{{ url_for('qr_image_png', code=campaign.code) }}" width="120" height="120" alt="QR code for {{ campaign.name }}" style="border-radius: 4px; display: block;">
+      </div>
+    </div>
+    <div style="flex: 1; min-width: 0; align-self: center; display: flex; gap: 10px; flex-wrap: wrap;">
+      <a class="btn" href="{{ url_for('qr_image_png', code=campaign.code, download=1) }}">Download PNG</a>
+      <a class="btn" href="{{ url_for('qr_image_svg', code=campaign.code, download=1) }}">Download SVG</a>
+      <a class="btn" href="{{ url_for('export_csv', code=campaign.code) }}">Export CSV</a>
+      <form method="post" action="{{ url_for('delete_campaign', code=campaign.code) }}" onsubmit="return confirm('Delete this campaign and all its scan data?');" style="display:inline;">
+        <button class="danger" type="submit">Delete campaign</button>
+      </form>
+    </div>
+  </div>
+
+  <div class="stat-grid">
+    <div class="stat"><div class="label">Total scans</div><div class="value">{{ total }}</div></div>
+    <div class="stat"><div class="label">Unique visitors</div><div class="value">{{ unique_visitors }}</div></div>
+    <div class="stat"><div class="label">Repeat scans</div><div class="value">{{ repeat_scans }}</div></div>
+    <div class="stat"><div class="label">Top location</div><div class="value" style="font-size:17px;">{{ location_counts[0][0] if location_counts else "—" }}</div></div>
+  </div>
+
+  <div class="card">
+    <h2>Scans over the last 14 days</h2>
+    <canvas id="dailyChart" height="90"></canvas>
+  </div>
+
+  <div class="row">
+    <div class="card" style="flex:1; min-width:240px;">
+      <h2>By location</h2>
+      {% if location_counts %}
+      <table>
+        <thead><tr><th>Location</th><th>Scans</th></tr></thead>
+        <tbody>
+          {% for loc, count in location_counts %}
+          <tr><td>{{ loc }}</td><td>{{ count }}</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}<p class="empty">No scans yet.</p>{% endif %}
+    </div>
+    <div class="card" style="flex:1; min-width:240px;">
+      <h2>By device</h2>
+      {% if device_counts %}
+      <table>
+        <thead><tr><th>Device</th><th>Scans</th></tr></thead>
+        <tbody>
+          {% for dev, count in device_counts %}
+          <tr><td>{{ dev }}</td><td>{{ count }}</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}<p class="empty">No scans yet.</p>{% endif %}
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>By browser</h2>
+    {% if browser_counts %}
+    <table>
+      <thead><tr><th>Browser</th><th>Scans</th></tr></thead>
+      <tbody>
+        {% for b, count in browser_counts %}
+        <tr><td>{{ b }}</td><td>{{ count }}</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}<p class="empty">No scans yet.</p>{% endif %}
+  </div>
+
+  <div class="card">
+    <h2>Raw scan log</h2>
+    {% if scans %}
+    <div style="overflow-x: auto;">
+    <table>
+      <thead>
+        <tr><th>#</th><th>Time</th><th>Location</th><th>Device</th><th>Browser</th><th>Visitor</th><th>Repeat?</th></tr>
+      </thead>
+      <tbody>
+        {% for s in scans %}
+        <tr>
+          <td class="mono">#{{ s.scan_number }}</td>
+          <td class="local-time mono" data-utc="{{ s.timestamp.isoformat() }}Z">{{ s.timestamp.strftime('%b %d, %H:%M:%S') }} UTC</td>
+          <td>{{ s.city }}{% if s.region %}, {{ s.region }}{% endif %}</td>
+          <td>{{ s.device_type }} &middot; {{ s.os_family }}</td>
+          <td>{{ s.browser }}</td>
+          <td class="mono">{{ s.visitor_id[:8] }}</td>
+          <td>{% if s.is_repeat %}<span class="pill">repeat</span>{% else %}first visit{% endif %}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    </div>
+    {% else %}
+      <p class="empty">No scans yet. Print the QR code above or visit the tracking link to test it.</p>
+    {% endif %}
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
+  <script>
+    const ctx = document.getElementById('dailyChart');
+    const labels = {{ daily_series | map(attribute='date') | list | tojson }};
+    const data = {{ daily_series | map(attribute='count') | list | tojson }};
+    new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: labels,
+        datasets: [{ label: 'Scans', data: data, backgroundColor: '#2dffd6', borderRadius: 3 }]
+      },
+      options: {
+        plugins: { legend: { display: false } },
+        scales: {
+          y: { beginAtZero: true, ticks: { precision: 0, color: '#7c8a9c' }, grid: { color: 'rgba(140,180,255,0.08)' } },
+          x: { ticks: { color: '#7c8a9c' }, grid: { display: false } }
+        }
+      }
+    });
+  </script>
+
+  <script>
+    // Convert each scan's stored UTC time into whatever timezone this
+    // browser is actually in — so it matches the viewer, not a fixed zone.
+    document.querySelectorAll('.local-time').forEach(function (el) {
+      const d = new Date(el.dataset.utc);
+      if (!isNaN(d.getTime())) {
+        el.textContent = d.toLocaleString(undefined, {
+          month: 'short', day: '2-digit',
+          hour: '2-digit', minute: '2-digit', second: '2-digit'
+        });
+      }
+      // If parsing fails for any reason, the UTC fallback text already
+      // rendered server-side stays visible — nothing breaks either way.
+    });
+  </script>
+{% endblock %}
